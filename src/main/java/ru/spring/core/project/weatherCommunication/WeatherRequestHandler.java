@@ -8,6 +8,8 @@ import com.github.prominence.openweathermap.api.model.forecast.WeatherForecast;
 import com.github.prominence.openweathermap.api.model.weather.Weather;
 import com.github.prominence.openweathermap.api.request.forecast.free.FiveDayThreeHourStepForecastRequestCustomizer;
 import com.github.prominence.openweathermap.api.request.weather.single.SingleResultCurrentWeatherRequestCustomizer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.stereotype.Component;
 import ru.spring.core.project.config.BotConfig;
 
@@ -22,8 +24,9 @@ import java.util.List;
 public class WeatherRequestHandler {
     OpenWeatherMapClient openWeatherClient;
     private BotConfig config;
-
-    public WeatherRequestHandler(BotConfig configuration){
+    ClassPathXmlApplicationContext context;
+    @Autowired
+    public WeatherRequestHandler(BotConfig configuration,ClassPathXmlApplicationContext context){
         config = configuration;
         openWeatherClient = new OpenWeatherMapClient(config.getOpenWeatherMapKey());
     }

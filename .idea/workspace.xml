@@ -6,8 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="6ed9d13b-f1fb-452d-bf38-2e32284bd08a" name="Changes" comment="add comments">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/BotInitializer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/BotInitializer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherData.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -101,11 +101,6 @@
           <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/BotConfig.java</url>
           <line>17</line>
           <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java</url>
-          <line>124</line>
-          <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

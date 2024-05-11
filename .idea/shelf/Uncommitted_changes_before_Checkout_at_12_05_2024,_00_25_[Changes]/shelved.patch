@@ -1,0 +1,583 @@
+Index: src/main/java/ru/spring/core/project/service/Bot.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package ru.spring.core.project.service;\n\nimport org.springframework.stereotype.Component;\nimport org.telegram.telegrambots.bots.TelegramLongPollingBot;\nimport org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;\nimport org.telegram.telegrambots.meta.api.methods.send.SendMessage;\nimport org.telegram.telegrambots.meta.api.objects.Location;\nimport org.telegram.telegrambots.meta.api.objects.Update;\nimport org.telegram.telegrambots.meta.api.objects.commands.BotCommand;\nimport org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;\nimport org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;\nimport org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;\nimport org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;\nimport org.telegram.telegrambots.meta.exceptions.TelegramApiException;\nimport ru.spring.core.project.config.BotConfig;\nimport ru.spring.core.project.weatherCommunication.WeatherData;\nimport ru.spring.core.project.weatherCommunication.WeatherRequestHandler;\n\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.logging.Level;\nimport java.util.logging.Logger;\n\n@Component\npublic class Bot extends TelegramLongPollingBot {\n\n   private final BotConfig config;\n   private final WeatherRequestHandler weatherRequestHandler;\n   static final String HELP_MESSAGE = \"This bot идет нахуй потому что тут писать еще нечего\";\n   private static final Logger logger = Logger.getLogger(Bot.class.getName());\n   private List<KeyboardRow> keyboard;\n\n   public Bot(BotConfig config) {\n       this.config = config;\n       weatherRequestHandler = new WeatherRequestHandler(config);\n       keyboard = new ArrayList<>();\n\n       List<BotCommand> listOfCommands = new ArrayList();\n       listOfCommands.add(new BotCommand(\"/start\", \"get a welcome message\"));\n       listOfCommands.add(new BotCommand(\"/help\", \"show help message\"));\n       listOfCommands.add(new BotCommand(\"/weather\", \"name city\"));\n\n       try {\n           this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));\n           logger.info( \"Create menu bot\");\n       } catch (TelegramApiException e){\n           logger.log(Level.SEVERE, \"Error setting bot commands\", e.getMessage());\n       }\n   }\n\n    @Override\n    public String getBotUsername() {\n        return config.getBotName();\n    }\n\n    @Override\n    public String getBotToken() {\n        return config.getBotToken();\n    }\n\n    public String getOpenWeatherMapKey(){\n       return config.getOpenWeatherMapKey();\n    }\n\n    @Override\n    public void onUpdateReceived(Update update) {\n        if (update.hasMessage()) {\n            long chatId = update.getMessage().getChatId();\n            if (update.getMessage().hasText()) {\n                String message = update.getMessage().getText();\n                switch (message){\n                    case \"/start\":\n                        startCommandReceived(chatId, update.getMessage().getChat().getFirstName());\n                        break;\n                    case \"/help\":\n                        sendMessage(chatId, HELP_MESSAGE);\n                        break;\n                    case \"Send Location\":\n                        requestLocationOrCity(chatId);\n                        break;\n                    case \"Type City Name\":\n                        sendMessage(chatId,\"Please type the name of the city.\");\n                        break;\n                    case \"/weather\":\n                        requestWeatherOptions(chatId);\n                        break;\n                    case \"Current Weather\":\n                        requestLocationOrCity(chatId);\n                        break;\n                    case \"exit\":\n                        requestWeatherOptions(chatId);\n                        break;\n                    default:\n                        getWeatherCity(chatId, message);\n                }\n            } else if(update.getMessage().hasLocation()) {\n                Location location = update.getMessage().getLocation();\n                handleLocation(location, chatId);\n            }else{\n                sendMessage(chatId, \"Sorry, your message was not recognized. Please try again or type /help for assistance.\");\n            }\n        }\n    }\n\n    private void handleLocation(Location location, Long chatId) {\n       sendMessage(chatId, \"Thank you for using the bot. We will start finding your city.\");\n       Double latitude = location.getLatitude();\n       Double longitude = location.getLongitude();\n       SendMessage message = new SendMessage();\n       message.setChatId(chatId);\n\n       try {\n           var response = weatherRequestHandler.getWeatherDataCoordinatesNow(latitude,longitude);\n           String weather = response.weatherResponse();\n           message.setText(weather);\n           execute(message);\n           logger.log(Level.INFO, \"Send message to user {0}\", chatId);\n       } catch (TelegramApiException e) {\n           logger.log(Level.SEVERE, \"Error sending location\", e.getMessage());\n       } catch (Exception e) {\n           throw new RuntimeException(e);\n       }\n    }\n\n    private void startCommandReceived (long chatId, String name) {\n        String response = \"Hello \" + name + \". I provide an opportunity to find out the weather anywhere in the world at any time.\";\n       // log.info(\"Replied to user. response: \" + response + \" chatId: \" + chatId + \" name: \" + name);\n        sendMessage(chatId, response);\n    }\n\n    private void sendMessage(long chatId, String message) {\n        SendMessage sendMessage = new SendMessage();\n        sendMessage.setChatId(String.valueOf(chatId));\n        sendMessage.setText(message);\n\n        try {\n            execute(sendMessage);\n        } catch (TelegramApiException e) {\n            //log.error(\"Error sending message\", e);\n        }\n    }\n\n    private void requestLocationOrCity(long chatId) {\n        SendMessage sendMessage = new SendMessage();\n        sendMessage.setChatId(String.valueOf(chatId));\n        sendMessage.setText(\"How would you like to provide your location?\");\n\n        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();\n        keyboardMarkup.setResizeKeyboard(true);\n        keyboardMarkup.setOneTimeKeyboard(true);\n        List<KeyboardRow> keyboard = new ArrayList<>();\n\n        KeyboardRow row = new KeyboardRow();\n\n        KeyboardButton buttonLocation = new KeyboardButton();\n        buttonLocation.setText(\"Send Location\");\n        buttonLocation.setRequestLocation(true);\n        row.add(buttonLocation);\n\n        KeyboardButton buttonCity = new KeyboardButton();\n        buttonCity.setText(\"Type City Name\");\n        row.add(buttonCity);\n        keyboard.add(row);\n\n        row = new KeyboardRow();\n        KeyboardButton buttonExit= new KeyboardButton();\n        buttonExit.setText(\"exit\");\n        row.add(buttonExit);\n        keyboard.add(row);\n\n        keyboardMarkup.setKeyboard(keyboard);\n        sendMessage.setReplyMarkup(keyboardMarkup);\n\n        try {\n            execute(sendMessage);\n        } catch (TelegramApiException e) {\n            // Обработка ошибок\n        }\n    }\n\n    private void requestWeatherOptions(long chatId) {\n        SendMessage sendMessage = new SendMessage();\n        sendMessage.setChatId(String.valueOf(chatId));\n        sendMessage.setText(\"Please select the weather option:\");\n\n        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();\n        keyboardMarkup.setResizeKeyboard(true);\n        keyboardMarkup.setOneTimeKeyboard(true);\n        List<KeyboardRow> keyboard = new ArrayList<>();\n\n        // Создаем кнопки для выбора опций погоды\n        KeyboardRow row = new KeyboardRow();\n        KeyboardButton buttonCurrentWeather = new KeyboardButton();\n        buttonCurrentWeather.setText(\"Current Weather\");\n        row.add(buttonCurrentWeather);\n        keyboard.add(row);\n\n        row = new KeyboardRow();\n        KeyboardButton buttonTomorrowWeather = new KeyboardButton();\n        buttonTomorrowWeather.setText(\"Tomorrow's Weather\");\n        row.add(buttonTomorrowWeather);\n\n        KeyboardButton buttonNextThreeDaysWeather = new KeyboardButton();\n        buttonNextThreeDaysWeather.setText(\"Next Three Days Weather\");\n        row.add(buttonNextThreeDaysWeather);\n        keyboard.add(row);\n\n        keyboardMarkup.setKeyboard(keyboard);\n        sendMessage.setReplyMarkup(keyboardMarkup);\n\n        try {\n            execute(sendMessage);\n        } catch (TelegramApiException e) {\n            // Handle exception\n        }\n    }\n\n    private void getWeatherCity(long chatId, String cityName) {\n       WeatherRequestHandler weatherRequestHandler =  new WeatherRequestHandler(config);\n\n       String response  = weatherRequestHandler.getAnswerCityNowReturnString(cityName);\n       SendMessage sendMessage = new SendMessage();\n       sendMessage.setChatId(String.valueOf(chatId));\n       sendMessage.setText(response);\n\n       try {\n           execute(sendMessage);\n           ArrayList<WeatherData> arrayList = weatherRequestHandler.getResponseCityNDay(cityName,4);\n       } catch (TelegramApiException e) {\n           // log.error(\"Error requesting location\", e);\n       } catch (Exception e) {\n           throw new RuntimeException(e);\n       }\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/ru/spring/core/project/service/Bot.java b/src/main/java/ru/spring/core/project/service/Bot.java
+--- a/src/main/java/ru/spring/core/project/service/Bot.java	(revision f1f7f87724f29e8e9b87fecdc58458808817bfff)
++++ b/src/main/java/ru/spring/core/project/service/Bot.java	(date 1715462650019)
+@@ -1,5 +1,6 @@
+ package ru.spring.core.project.service;
+ 
++import lombok.extern.slf4j.Slf4j;
+ import org.springframework.stereotype.Component;
+ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+ import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+@@ -18,34 +19,30 @@
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+-import java.util.logging.Level;
+-import java.util.logging.Logger;
+ 
+ @Component
++@Slf4j
+ public class Bot extends TelegramLongPollingBot {
+ 
+    private final BotConfig config;
+-   private final WeatherRequestHandler weatherRequestHandler;
+    static final String HELP_MESSAGE = "This bot идет нахуй потому что тут писать еще нечего";
+-   private static final Logger logger = Logger.getLogger(Bot.class.getName());
+-   private List<KeyboardRow> keyboard;
+ 
+    public Bot(BotConfig config) {
+        this.config = config;
+-       weatherRequestHandler = new WeatherRequestHandler(config);
+-       keyboard = new ArrayList<>();
+-
+        List<BotCommand> listOfCommands = new ArrayList();
+        listOfCommands.add(new BotCommand("/start", "get a welcome message"));
++       listOfCommands.add(new BotCommand("/sign_up", "sign up"));
++       listOfCommands.add(new BotCommand("/sign_in", "sign in"));
++       listOfCommands.add(new BotCommand("/location", "request location"));
+        listOfCommands.add(new BotCommand("/help", "show help message"));
+-       listOfCommands.add(new BotCommand("/weather", "name city"));
++       listOfCommands.add(new BotCommand("/name_city", "name city"));
+ 
+        try {
+            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
+-           logger.info( "Create menu bot");
+        } catch (TelegramApiException e){
+-           logger.log(Level.SEVERE, "Error setting bot commands", e.getMessage());
++           log.error("Error setting bot commands", e.getMessage());
+        }
++
+    }
+ 
+     @Override
+@@ -64,41 +61,30 @@
+ 
+     @Override
+     public void onUpdateReceived(Update update) {
+-        if (update.hasMessage()) {
+-            long chatId = update.getMessage().getChatId();
+-            if (update.getMessage().hasText()) {
+-                String message = update.getMessage().getText();
+-                switch (message){
+-                    case "/start":
+-                        startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+-                        break;
+-                    case "/help":
+-                        sendMessage(chatId, HELP_MESSAGE);
+-                        break;
+-                    case "Send Location":
+-                        requestLocationOrCity(chatId);
+-                        break;
+-                    case "Type City Name":
+-                        sendMessage(chatId,"Please type the name of the city.");
+-                        break;
+-                    case "/weather":
+-                        requestWeatherOptions(chatId);
+-                        break;
+-                    case "Current Weather":
+-                        requestLocationOrCity(chatId);
+-                        break;
+-                    case "exit":
+-                        requestWeatherOptions(chatId);
+-                        break;
+-                    default:
+-                        getWeatherCity(chatId, message);
+-                }
+-            } else if(update.getMessage().hasLocation()) {
+-                Location location = update.getMessage().getLocation();
+-                handleLocation(location, chatId);
+-            }else{
+-                sendMessage(chatId, "Sorry, your message was not recognized. Please try again or type /help for assistance.");
+-            }
++        if (update.hasMessage() && update.getMessage().hasText()) {
++            String message = update.getMessage().getText();
++            long chatId = update.getMessage().getChatId();
++
++            switch (message){
++                case "/start":
++                    startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
++                    break;
++                case "/help":
++                    sendMessage(chatId, HELP_MESSAGE);
++                    break;
++                case "/location":
++                     requestLocation(chatId);
++                     break;
++                case "/name_city":
++                    requestLocation(chatId);
++                    break;
++                default:
++                    handleCity( chatId,  message);
++                    sendMessage(chatId, "Sorry, command was not recognized");
++            }
++        } else if(update.hasMessage() && update.getMessage().hasLocation()){
++            Location location = update.getMessage().getLocation();
++            handleLocation(location, update.getMessage().getChatId());
+         }
+     }
+ 
+@@ -108,23 +94,18 @@
+        Double longitude = location.getLongitude();
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
++       message.setText("Additional coordinates:\nLatitude - " + latitude + ", Longitude - " + longitude);
+ 
+        try {
+-           var response = weatherRequestHandler.getWeatherDataCoordinatesNow(latitude,longitude);
+-           String weather = response.weatherResponse();
+-           message.setText(weather);
+            execute(message);
+-           logger.log(Level.INFO, "Send message to user {0}", chatId);
+        } catch (TelegramApiException e) {
+-           logger.log(Level.SEVERE, "Error sending location", e.getMessage());
+-       } catch (Exception e) {
+-           throw new RuntimeException(e);
++           log.error("Error sending location", e);
+        }
+     }
+ 
+     private void startCommandReceived (long chatId, String name) {
+         String response = "Hello " + name + ". I provide an opportunity to find out the weather anywhere in the world at any time.";
+-       // log.info("Replied to user. response: " + response + " chatId: " + chatId + " name: " + name);
++        log.info("Replied to user. response: " + response + " chatId: " + chatId + " name: " + name);
+         sendMessage(chatId, response);
+     }
+ 
+@@ -136,100 +117,49 @@
+         try {
+             execute(sendMessage);
+         } catch (TelegramApiException e) {
+-            //log.error("Error sending message", e);
+-        }
+-    }
+-
+-    private void requestLocationOrCity(long chatId) {
+-        SendMessage sendMessage = new SendMessage();
+-        sendMessage.setChatId(String.valueOf(chatId));
+-        sendMessage.setText("How would you like to provide your location?");
+-
+-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+-        keyboardMarkup.setResizeKeyboard(true);
+-        keyboardMarkup.setOneTimeKeyboard(true);
+-        List<KeyboardRow> keyboard = new ArrayList<>();
+-
+-        KeyboardRow row = new KeyboardRow();
+-
+-        KeyboardButton buttonLocation = new KeyboardButton();
+-        buttonLocation.setText("Send Location");
+-        buttonLocation.setRequestLocation(true);
+-        row.add(buttonLocation);
+-
+-        KeyboardButton buttonCity = new KeyboardButton();
+-        buttonCity.setText("Type City Name");
+-        row.add(buttonCity);
+-        keyboard.add(row);
+-
+-        row = new KeyboardRow();
+-        KeyboardButton buttonExit= new KeyboardButton();
+-        buttonExit.setText("exit");
+-        row.add(buttonExit);
+-        keyboard.add(row);
+-
+-        keyboardMarkup.setKeyboard(keyboard);
+-        sendMessage.setReplyMarkup(keyboardMarkup);
+-
+-        try {
+-            execute(sendMessage);
+-        } catch (TelegramApiException e) {
+-            // Обработка ошибок
++            log.error("Error sending message", e);
+         }
+     }
+ 
+-    private void requestWeatherOptions(long chatId) {
++    private void requestLocation(long chatId) {
+         SendMessage sendMessage = new SendMessage();
+         sendMessage.setChatId(String.valueOf(chatId));
+-        sendMessage.setText("Please select the weather option:");
++        sendMessage.setText("Please share your location with me.");
+ 
+         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+         keyboardMarkup.setResizeKeyboard(true);
+         keyboardMarkup.setOneTimeKeyboard(true);
+         List<KeyboardRow> keyboard = new ArrayList<>();
+-
+-        // Создаем кнопки для выбора опций погоды
+         KeyboardRow row = new KeyboardRow();
+-        KeyboardButton buttonCurrentWeather = new KeyboardButton();
+-        buttonCurrentWeather.setText("Current Weather");
+-        row.add(buttonCurrentWeather);
++        KeyboardButton button = new KeyboardButton();
++        button.setText("Send Location");
++        button.setRequestLocation(true);
++        row.add(button);
+         keyboard.add(row);
+-
+-        row = new KeyboardRow();
+-        KeyboardButton buttonTomorrowWeather = new KeyboardButton();
+-        buttonTomorrowWeather.setText("Tomorrow's Weather");
+-        row.add(buttonTomorrowWeather);
+-
+-        KeyboardButton buttonNextThreeDaysWeather = new KeyboardButton();
+-        buttonNextThreeDaysWeather.setText("Next Three Days Weather");
+-        row.add(buttonNextThreeDaysWeather);
+-        keyboard.add(row);
+-
+         keyboardMarkup.setKeyboard(keyboard);
+         sendMessage.setReplyMarkup(keyboardMarkup);
+ 
+         try {
+             execute(sendMessage);
+         } catch (TelegramApiException e) {
+-            // Handle exception
++            log.error("Error requesting location", e);
+         }
++
+     }
++    private void handleCity(long chatId, String cityName) {
++        WeatherRequestHandler weatherRequestHandler =  new WeatherRequestHandler();
+ 
+-    private void getWeatherCity(long chatId, String cityName) {
+-       WeatherRequestHandler weatherRequestHandler =  new WeatherRequestHandler(config);
+ 
+-       String response  = weatherRequestHandler.getAnswerCityNowReturnString(cityName);
+-       SendMessage sendMessage = new SendMessage();
+-       sendMessage.setChatId(String.valueOf(chatId));
+-       sendMessage.setText(response);
++        String answer = weatherRequestHandler.GetAnswerCityNowReturnString(cityName);
++        SendMessage sendMessage = new SendMessage();
++        sendMessage.setChatId(String.valueOf(chatId));
++        sendMessage.setText(answer);
+ 
+-       try {
+-           execute(sendMessage);
+-           ArrayList<WeatherData> arrayList = weatherRequestHandler.getResponseCityNDay(cityName,4);
+-       } catch (TelegramApiException e) {
+-           // log.error("Error requesting location", e);
+-       } catch (Exception e) {
+-           throw new RuntimeException(e);
+-       }
++        try {
++            execute(sendMessage);
++            //ArrayList<WeatherData> arrayList = weatherRequestHandler.GetAnswerCityNDay(cityName,4);
++        } catch (TelegramApiException e) {
++            log.error("Error requesting location", e);
++        }
+     }
+ }
+Index: src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package ru.spring.core.project.weatherCommunication;\n\nimport com.github.prominence.openweathermap.api.OpenWeatherMapClient;\nimport com.github.prominence.openweathermap.api.enums.Language;\nimport com.github.prominence.openweathermap.api.enums.UnitSystem;\nimport com.github.prominence.openweathermap.api.model.Coordinate;\nimport com.github.prominence.openweathermap.api.model.forecast.WeatherForecast;\nimport com.github.prominence.openweathermap.api.model.weather.Weather;\nimport com.github.prominence.openweathermap.api.request.forecast.free.FiveDayThreeHourStepForecastRequestCustomizer;\nimport com.github.prominence.openweathermap.api.request.weather.single.SingleResultCurrentWeatherRequestCustomizer;\nimport org.springframework.stereotype.Component;\nimport ru.spring.core.project.config.BotConfig;\n\nimport java.time.LocalDate;\nimport java.time.LocalDateTime;\nimport java.time.LocalTime;\nimport java.time.format.DateTimeFormatter;\nimport java.util.ArrayList;\nimport java.util.List;\n\n@Component\npublic class WeatherRequestHandler {\n    OpenWeatherMapClient openWeatherClient;\n    private BotConfig config;\n\n    public WeatherRequestHandler(BotConfig configuration){\n        config = configuration;\n        openWeatherClient = new OpenWeatherMapClient(config.getOpenWeatherMapKey());\n    }\n    String GetAnswerCoord(){return \"\";};\n\n    // этот метод оставил для теста\n    private String parseWeatherReturnString(Weather parseWeather, String city){\n        String ans = city + \"\\n\\n\" +\"Now:\\n\"+\n                Math.round(parseWeather.getTemperature().getValue())+\"\\n\"\n                +parseWeather.getWeatherState()+\"\\n\"\n                +parseWeather.getAtmosphericPressure()+\"\\n\"\n                +parseWeather.getHumidity()+\"\\n\";\n        return ans;\n    };\n    // этот метод оставил для теста\n    String parseForecastReturnString(WeatherForecast parseWeather){\n        String ans=parseWeather.getForecastTimeISO()+\"\\n\"\n                +Math.round(parseWeather.getTemperature().getValue())+\"\\n\"\n                +parseWeather.getWeatherState()+\"\\n\"\n                +parseWeather.getAtmosphericPressure()+\"\\n\"\n                +parseWeather.getHumidity()+\"\\n\";\n        return ans;\n    };\n\n    // этот метод оставил для теста\n    public String getAnswerCityNowReturnString(String cityName){\n        try {\n            Weather currentWeather = openWeatherClient\n                    .currentWeather()\n                    .single()\n                    .byCityName(cityName)\n                    .language(Language.ENGLISH)\n                    .unitSystem(UnitSystem.METRIC)\n                    .retrieve()\n                    .asJava();\n            String response = parseWeatherReturnString(currentWeather, cityName);\n            return response;\n        }\n        catch(Exception e){\n            System.out.println(\"Произошло исключение: \" + e);\n            return \"error\";\n        }\n    };\n\n\n    // этот метод оставил для теста\n    public String getAnswerCityTodayReturnString(String cityName){\n        try {\n            List<WeatherForecast> listForecast = openWeatherClient.forecast5Day3HourStep()\n                    .byCityName(cityName).language(Language.RUSSIAN)\n                    .unitSystem(UnitSystem.METRIC)\n                    .count(8)\n                    .retrieve().asJava().getWeatherForecasts();\n            String ans = \"Сегодня: \\n\";\n            for (int i = 0; i < listForecast.size(); i++) {\n                LocalTime now = LocalTime.now();\n                if (listForecast.get(i).getForecastTime().toLocalTime().isAfter(now)) {\n                    break;\n                }\n                ans += listForecast.get(i).getForecastTime().toLocalTime().format(DateTimeFormatter.ofPattern(\"HH:mm\")) + \" \";\n                ans += parseForecastReturnString(listForecast.get(i));\n            }\n            //String ans=ParseWeather(listForecast.get(i).getWeatherState());\n            return ans;\n        }\n        catch(Exception e){\n            System.out.println(\"Произошло исключение: \" + e);\n            return \"error\";\n        }\n    };\n\n    //Нужные методы:\n    public WeatherData getWeatherDataCoordinatesNow(double latitude, double longitude)throws Exception {\n        try {\n            Coordinate myCoordinate = Coordinate.of(latitude, longitude);\n            SingleResultCurrentWeatherRequestCustomizer tempOdject = openWeatherClient\n                    .currentWeather()\n                    .single()\n                    .byCoordinate(myCoordinate);\n            return getWeatherDataByTempObject(tempOdject,\"\",latitude,longitude);\n        }\n        catch (Exception ex) {\n            throw new Exception(\"The place was not found!\", ex);\n        }\n    };\n\n    public WeatherData getWeatherDataCityNow(String cityName)throws Exception {\n        try {\n            SingleResultCurrentWeatherRequestCustomizer tempOdject = openWeatherClient\n                    .currentWeather()\n                    .single()\n                    .byCityName(cityName);\n\n\n            return getWeatherDataByTempObject(tempOdject,cityName,0,0);\n        }\n        catch (Exception ex) {\n            throw new Exception(\"Город не найден!\", ex);\n        }\n    };\n\n\n    public WeatherData getWeatherDataByTempObject(SingleResultCurrentWeatherRequestCustomizer tempOdject,\n                                           String cityName, double latitude, double longitude)throws Exception {\n        try {\n            Weather currentWeather = tempOdject\n                    .language(Language.RUSSIAN)\n                    .unitSystem(UnitSystem.METRIC)\n                    .retrieve()\n                    .asJava();\n            WeatherData ans = parseWeather(currentWeather, cityName, latitude, longitude);\n            return ans;\n        }\n        catch (Exception ex) {\n            throw new Exception(\"Место не найдено!\", ex);\n        }\n    };\n\n    private WeatherData parseWeather(Weather currentWeather, String cityName, double latitude, double longitude) {\n        WeatherData weatherData= new WeatherData();\n        weatherData.setLatitude(latitude);\n        weatherData.setLongitude(longitude);\n        weatherData.setCityName(cityName);\n        weatherData.setDate(LocalDate.now());\n        weatherData.setTime(LocalTime.now());\n        weatherData.setDay(LocalDate.now().getDayOfWeek());\n        weatherData.setTemperature(Math.round((float)currentWeather.getTemperature().getValue()));\n        weatherData.setHumidity((float)currentWeather.getHumidity().getValue());\n        weatherData.setPressure((float)currentWeather.getAtmosphericPressure().getValue());\n        weatherData.setWindSpeed((float)currentWeather.getWind().getSpeed());\n        weatherData.setWeatherStateMain(currentWeather.getWeatherState().getName());\n        weatherData.setWeatherStateDescription(currentWeather.getWeatherState().getDescription());\n\n        return weatherData;\n    }\n\n\n    // если передать 0 дней, выведет прогноз на остаток сегодняшнего дня\n    // 1 день - на сегодня и на завтра\n    // Максимом - 5 дней. Больше не умеет\n    /**\n     *\n     *\n     *\n     *\n     * **/\n    public ArrayList<WeatherData> getResponseCityNDay(String cityName, int amountDays) throws Exception {\n        try {\n            FiveDayThreeHourStepForecastRequestCustomizer tempObject= openWeatherClient.forecast5Day3HourStep()\n                    .byCityName(cityName);\n            ArrayList<WeatherData> response = getAnswerTempObjectNDay(tempObject,amountDays,cityName,0,0);\n            return response;\n        } catch (Exception ex) {\n            throw new Exception(\"Город не найден!\", ex);\n        }\n    };\n\n\n    // если передать 0 дней, выведет прогноз на остаток сегодняшнего дня\n    // 1 день - на сегодня и на завтра\n    // Максимом - 5 дней. Больше не умеет\n    public ArrayList<WeatherData> getAnswerCoordsNDay(double latitude, double longitude, int amountDays) throws Exception {\n        try {\n            Coordinate myCoordinate = Coordinate.of(latitude, longitude);\n            FiveDayThreeHourStepForecastRequestCustomizer tempObject= openWeatherClient.forecast5Day3HourStep()\n                    .byCoordinate(myCoordinate);\n            ArrayList<WeatherData> ans = getAnswerTempObjectNDay(tempObject,amountDays,\"\",latitude,longitude);\n            return ans;\n        } catch (Exception ex) {\n            throw new Exception(\"Город не найден!\", ex);\n        }\n    };\n\n     ArrayList<WeatherData> getAnswerTempObjectNDay(FiveDayThreeHourStepForecastRequestCustomizer tempObject,\n                                                          int amountDays , String cityName, double latitude, double longitude) throws Exception {\n        try {\n\n            List<WeatherForecast> listForecast = tempObject.language(Language.RUSSIAN)\n                    .unitSystem(UnitSystem.METRIC)\n                    .count(40)\n                    .retrieve().asJava().getWeatherForecasts();\n\n\n            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm:ss\");\n            LocalDate currentDate = LocalDate.now();\n            ArrayList<WeatherData> listWeatherData = new ArrayList<>();\n\n            for (int i = 0; i < listForecast.size(); i++) {\n                LocalDateTime localDateTime = LocalDateTime.parse(listForecast.get(i).getForecastTimeISO(), formatter);\n                LocalDate date = localDateTime.toLocalDate();\n                LocalTime time = localDateTime.toLocalTime();\n                if (!date.isBefore(currentDate.plusDays(amountDays+1))) {\n                    break;\n                }\n                listWeatherData.add(parseForecast(listForecast.get(i),cityName,date,time,latitude,longitude));\n\n\n            }\n            return listWeatherData;\n        } catch (Exception ex) {\n            throw new Exception(\"Город не найден!\", ex);\n        }\n    }\n\n    WeatherData parseForecast(WeatherForecast weatherForecast, String cityName,LocalDate date,LocalTime time,\n                              double latitude, double longitude){\n        WeatherData weatherData= new WeatherData();\n        weatherData.setLatitude(latitude);\n        weatherData.setLongitude(longitude);\n        weatherData.setCityName(cityName);\n        weatherData.setDate(date);\n        weatherData.setTime(time);\n        weatherData.setDay(date.getDayOfWeek());\n        weatherData.setTemperature(Math.round((float)weatherForecast.getTemperature().getValue()));\n        weatherData.setHumidity((float)weatherForecast.getHumidity().getValue());\n        weatherData.setPressure((float)weatherForecast.getAtmosphericPressure().getValue()); // нужно перевести в мм рт ст\n        weatherData.setWindSpeed((float)weatherForecast.getWind().getSpeed());\n        weatherData.setWeatherStateMain(weatherForecast.getWeatherState().getName());\n        weatherData.setWeatherStateDescription(weatherForecast.getWeatherState().getDescription());\n        return weatherData;\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java b/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java
+--- a/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java	(revision f1f7f87724f29e8e9b87fecdc58458808817bfff)
++++ b/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java	(date 1715462655456)
+@@ -8,8 +8,6 @@
+ import com.github.prominence.openweathermap.api.model.weather.Weather;
+ import com.github.prominence.openweathermap.api.request.forecast.free.FiveDayThreeHourStepForecastRequestCustomizer;
+ import com.github.prominence.openweathermap.api.request.weather.single.SingleResultCurrentWeatherRequestCustomizer;
+-import org.springframework.stereotype.Component;
+-import ru.spring.core.project.config.BotConfig;
+ 
+ import java.time.LocalDate;
+ import java.time.LocalDateTime;
+@@ -18,20 +16,20 @@
+ import java.util.ArrayList;
+ import java.util.List;
+ 
+-@Component
+ public class WeatherRequestHandler {
+     OpenWeatherMapClient openWeatherClient;
+-    private BotConfig config;
+-
+-    public WeatherRequestHandler(BotConfig configuration){
+-        config = configuration;
+-        openWeatherClient = new OpenWeatherMapClient(config.getOpenWeatherMapKey());
++    public WeatherRequestHandler(){
++        String API_TOKEN = "a8734f088878edc423890fec5b2a94e5";
++        openWeatherClient = new OpenWeatherMapClient(API_TOKEN);
+     }
+     String GetAnswerCoord(){return "";};
+ 
++
++
++
+     // этот метод оставил для теста
+-    private String parseWeatherReturnString(Weather parseWeather, String city){
+-        String ans = city + "\n\n" +"Now:\n"+
++    String ParseWeatherReturnString(Weather parseWeather){
++        String ans=" Now:\n"+
+                 Math.round(parseWeather.getTemperature().getValue())+"\n"
+                 +parseWeather.getWeatherState()+"\n"
+                 +parseWeather.getAtmosphericPressure()+"\n"
+@@ -39,7 +37,7 @@
+         return ans;
+     };
+     // этот метод оставил для теста
+-    String parseForecastReturnString(WeatherForecast parseWeather){
++    String ParseForecastReturnString(WeatherForecast parseWeather){
+         String ans=parseWeather.getForecastTimeISO()+"\n"
+                 +Math.round(parseWeather.getTemperature().getValue())+"\n"
+                 +parseWeather.getWeatherState()+"\n"
+@@ -48,29 +46,31 @@
+         return ans;
+     };
+ 
++
++
++
++
+     // этот метод оставил для теста
+-    public String getAnswerCityNowReturnString(String cityName){
++    public String GetAnswerCityNowReturnString(String cityName){
+         try {
+             Weather currentWeather = openWeatherClient
+                     .currentWeather()
+                     .single()
+                     .byCityName(cityName)
+-                    .language(Language.ENGLISH)
++                    .language(Language.RUSSIAN)
+                     .unitSystem(UnitSystem.METRIC)
+                     .retrieve()
+                     .asJava();
+-            String response = parseWeatherReturnString(currentWeather, cityName);
+-            return response;
++            String ans = ParseWeatherReturnString(currentWeather);
++            return ans;
+         }
+         catch(Exception e){
+             System.out.println("Произошло исключение: " + e);
+             return "error";
+         }
+     };
+-
+-
+     // этот метод оставил для теста
+-    public String getAnswerCityTodayReturnString(String cityName){
++    public String GetAnswerCityTodayReturnString(String cityName){
+         try {
+             List<WeatherForecast> listForecast = openWeatherClient.forecast5Day3HourStep()
+                     .byCityName(cityName).language(Language.RUSSIAN)
+@@ -84,7 +84,7 @@
+                     break;
+                 }
+                 ans += listForecast.get(i).getForecastTime().toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) + " ";
+-                ans += parseForecastReturnString(listForecast.get(i));
++                ans += ParseForecastReturnString(listForecast.get(i));
+             }
+             //String ans=ParseWeather(listForecast.get(i).getWeatherState());
+             return ans;
+@@ -95,22 +95,35 @@
+         }
+     };
+ 
++
++
++
++
++
++
++
++
++
++
++
++
+     //Нужные методы:
+-    public WeatherData getWeatherDataCoordinatesNow(double latitude, double longitude)throws Exception {
++    public WeatherData GetWeatherDataCoordsNow(double latitude, double longitude)throws Exception {
+         try {
+             Coordinate myCoordinate = Coordinate.of(latitude, longitude);
+             SingleResultCurrentWeatherRequestCustomizer tempOdject = openWeatherClient
+                     .currentWeather()
+                     .single()
+                     .byCoordinate(myCoordinate);
+-            return getWeatherDataByTempObject(tempOdject,"",latitude,longitude);
++
++
++            return GetWeatherDataByTempObject(tempOdject,"",latitude,longitude);
+         }
+         catch (Exception ex) {
+-            throw new Exception("The place was not found!", ex);
++            throw new Exception("Место не найдено!", ex);
+         }
+     };
+-
+-    public WeatherData getWeatherDataCityNow(String cityName)throws Exception {
++    public WeatherData GetWeatherDataCityNow(String cityName)throws Exception {
+         try {
+             SingleResultCurrentWeatherRequestCustomizer tempOdject = openWeatherClient
+                     .currentWeather()
+@@ -118,7 +131,7 @@
+                     .byCityName(cityName);
+ 
+ 
+-            return getWeatherDataByTempObject(tempOdject,cityName,0,0);
++            return GetWeatherDataByTempObject(tempOdject,cityName,0,0);
+         }
+         catch (Exception ex) {
+             throw new Exception("Город не найден!", ex);
+@@ -126,7 +139,7 @@
+     };
+ 
+ 
+-    public WeatherData getWeatherDataByTempObject(SingleResultCurrentWeatherRequestCustomizer tempOdject,
++    WeatherData GetWeatherDataByTempObject(SingleResultCurrentWeatherRequestCustomizer tempOdject,
+                                            String cityName, double latitude, double longitude)throws Exception {
+         try {
+             Weather currentWeather = tempOdject
+@@ -142,7 +155,7 @@
+         }
+     };
+ 
+-    private WeatherData parseWeather(Weather currentWeather, String cityName, double latitude, double longitude) {
++    WeatherData parseWeather(Weather currentWeather, String cityName, double latitude, double longitude) {
+         WeatherData weatherData= new WeatherData();
+         weatherData.setLatitude(latitude);
+         weatherData.setLongitude(longitude);
+@@ -152,11 +165,12 @@
+         weatherData.setDay(LocalDate.now().getDayOfWeek());
+         weatherData.setTemperature(Math.round((float)currentWeather.getTemperature().getValue()));
+         weatherData.setHumidity((float)currentWeather.getHumidity().getValue());
+-        weatherData.setPressure((float)currentWeather.getAtmosphericPressure().getValue());
++        weatherData.setPressure((float)currentWeather.getAtmosphericPressure().getValue()); // нужно перевести в мм рт ст
+         weatherData.setWindSpeed((float)currentWeather.getWind().getSpeed());
+         weatherData.setWeatherStateMain(currentWeather.getWeatherState().getName());
+         weatherData.setWeatherStateDescription(currentWeather.getWeatherState().getDescription());
+ 
++
+         return weatherData;
+     }
+ 
+@@ -164,18 +178,12 @@
+     // если передать 0 дней, выведет прогноз на остаток сегодняшнего дня
+     // 1 день - на сегодня и на завтра
+     // Максимом - 5 дней. Больше не умеет
+-    /**
+-     *
+-     *
+-     *
+-     *
+-     * **/
+-    public ArrayList<WeatherData> getResponseCityNDay(String cityName, int amountDays) throws Exception {
++    public ArrayList<WeatherData> GetAnswerCityNDay(String cityName, int amountDays) throws Exception {
+         try {
+             FiveDayThreeHourStepForecastRequestCustomizer tempObject= openWeatherClient.forecast5Day3HourStep()
+                     .byCityName(cityName);
+-            ArrayList<WeatherData> response = getAnswerTempObjectNDay(tempObject,amountDays,cityName,0,0);
+-            return response;
++            ArrayList<WeatherData> ans = GetAnswerTempObjectNDay(tempObject,amountDays,cityName,0,0);
++            return ans;
+         } catch (Exception ex) {
+             throw new Exception("Город не найден!", ex);
+         }
+@@ -185,19 +193,31 @@
+     // если передать 0 дней, выведет прогноз на остаток сегодняшнего дня
+     // 1 день - на сегодня и на завтра
+     // Максимом - 5 дней. Больше не умеет
+-    public ArrayList<WeatherData> getAnswerCoordsNDay(double latitude, double longitude, int amountDays) throws Exception {
++    public ArrayList<WeatherData> GetAnswerCoordsNDay(double latitude, double longitude, int amountDays) throws Exception {
+         try {
+             Coordinate myCoordinate = Coordinate.of(latitude, longitude);
+             FiveDayThreeHourStepForecastRequestCustomizer tempObject= openWeatherClient.forecast5Day3HourStep()
+                     .byCoordinate(myCoordinate);
+-            ArrayList<WeatherData> ans = getAnswerTempObjectNDay(tempObject,amountDays,"",latitude,longitude);
++            ArrayList<WeatherData> ans = GetAnswerTempObjectNDay(tempObject,amountDays,"",latitude,longitude);
+             return ans;
+         } catch (Exception ex) {
+             throw new Exception("Город не найден!", ex);
+         }
+     };
+ 
+-     ArrayList<WeatherData> getAnswerTempObjectNDay(FiveDayThreeHourStepForecastRequestCustomizer tempObject,
++
++
++
++
++
++
++
++
++
++
++
++
++     ArrayList<WeatherData> GetAnswerTempObjectNDay(FiveDayThreeHourStepForecastRequestCustomizer tempObject,
+                                                           int amountDays , String cityName, double latitude, double longitude) throws Exception {
+         try {
+ 
+@@ -228,6 +248,10 @@
+         }
+     }
+ 
++
++
++
++
+     WeatherData parseForecast(WeatherForecast weatherForecast, String cityName,LocalDate date,LocalTime time,
+                               double latitude, double longitude){
+         WeatherData weatherData= new WeatherData();
+@@ -245,4 +269,6 @@
+         weatherData.setWeatherStateDescription(weatherForecast.getWeatherState().getDescription());
+         return weatherData;
+     }
++
++
+ }
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"6ed9d13b-f1fb-452d-bf38-2e32284bd08a\" name=\"Changes\" comment=\"add comments\">\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherData.java\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherData.java\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"FileTemplateManagerImpl\">\n    <option name=\"RECENT_TEMPLATES\">\n      <list>\n        <option value=\"Class\" />\n      </list>\n    </option>\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\n      <map>\n        <entry key=\"$PROJECT_DIR$\" value=\"ekalugin-branch\" />\n      </map>\n    </option>\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"ProjectCodeStyleSettingsMigration\">\n    <option name=\"version\" value=\"2\" />\n  </component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;associatedIndex&quot;: 0\n}</component>\n  <component name=\"ProjectId\" id=\"2gCMFkFm46yyN3ipubTWv5BOu68\" />\n  <component name=\"ProjectLevelVcsManager\" settingsEditedManually=\"true\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\">{\n  &quot;keyToString&quot;: {\n    &quot;Application.Main.executor&quot;: &quot;Run&quot;,\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\n    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,\n    &quot;git-widget-placeholder&quot;: &quot;mcherep-branch&quot;,\n    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,\n    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,\n    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;\n  }\n}</component>\n  <component name=\"RunManager\">\n    <configuration default=\"true\" type=\"JetRunConfigurationType\">\n      <method v=\"2\">\n        <option name=\"Make\" enabled=\"true\" />\n      </method>\n    </configuration>\n    <configuration default=\"true\" type=\"KotlinStandaloneScriptRunConfigurationType\">\n      <option name=\"filePath\" />\n      <method v=\"2\">\n        <option name=\"Make\" enabled=\"true\" />\n      </method>\n    </configuration>\n  </component>\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"6ed9d13b-f1fb-452d-bf38-2e32284bd08a\" name=\"Changes\" comment=\"\" />\n      <created>1715197004556</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1715197004556</updated>\n      <workItem from=\"1715197005557\" duration=\"1000\" />\n    </task>\n    <task id=\"LOCAL-00001\" summary=\"add comments\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1715338880380</created>\n      <option name=\"number\" value=\"00001\" />\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1715338880380</updated>\n    </task>\n    <option name=\"localTasksCounter\" value=\"2\" />\n    <servers />\n  </component>\n  <component name=\"TypeScriptGeneratedFilesManager\">\n    <option name=\"version\" value=\"3\" />\n  </component>\n  <component name=\"VcsManagerConfiguration\">\n    <MESSAGE value=\"add comments\" />\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"add comments\" />\n  </component>\n  <component name=\"XDebuggerManager\">\n    <breakpoint-manager>\n      <breakpoints>\n        <line-breakpoint enabled=\"true\" type=\"java-line\">\n          <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/BotConfig.java</url>\n          <line>17</line>\n          <option name=\"timeStamp\" value=\"1\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" type=\"java-line\">\n          <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java</url>\n          <line>124</line>\n          <option name=\"timeStamp\" value=\"2\" />\n        </line-breakpoint>\n      </breakpoints>\n    </breakpoint-manager>\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision f1f7f87724f29e8e9b87fecdc58458808817bfff)
++++ b/.idea/workspace.xml	(date 1715462655484)
+@@ -7,7 +7,6 @@
+     <list default="true" id="6ed9d13b-f1fb-452d-bf38-2e32284bd08a" name="Changes" comment="add comments">
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherData.java" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+@@ -44,7 +43,7 @@
+   </component>
+   <component name="PropertiesComponent">{
+   &quot;keyToString&quot;: {
+-    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
++    &quot;Application.Main.executor&quot;: &quot;Debug&quot;,
+     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+     &quot;git-widget-placeholder&quot;: &quot;mcherep-branch&quot;,
+@@ -104,8 +103,18 @@
+         </line-breakpoint>
+         <line-breakpoint enabled="true" type="java-line">
+           <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java</url>
+-          <line>124</line>
++          <line>137</line>
+           <option name="timeStamp" value="2" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" type="java-line">
++          <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java</url>
++          <line>81</line>
++          <option name="timeStamp" value="4" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" type="java-line">
++          <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java</url>
++          <line>69</line>
++          <option name="timeStamp" value="5" />
+         </line-breakpoint>
+       </breakpoints>
+     </breakpoint-manager>
