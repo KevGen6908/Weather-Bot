@@ -1,0 +1,42 @@
+<configuration>
+
+    <!-- Определяем переменную для пути к файлу лога -->
+    <property name="LOG_FILE_PATH" value="file:${user.dir}/src/main/resources/logs/your_log_file.log" />
+
+    <!-- Appender для записи логов в файл -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_FILE_PATH}</file> <!-- Используем переменную для пути к файлу лога -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender для вывода логов в консоль -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Логгер для информационных сообщений -->
+    <logger name="ru.spring.core.project" level="INFO" additivity="false">
+        <appender-ref ref="FILE"/> <!-- Используем appender для записи в файл -->
+    </logger>
+
+    <!-- Логгер для отладочных сообщений -->
+    <logger name="ru.spring.core.project" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/> <!-- Используем appender для вывода в консоль -->
+    </logger>
+
+    <!-- Устанавливаем уровень логирования для корневого логгера -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/> <!-- Используем appender для вывода в консоль -->
+        <appender-ref ref="FILE"/> <!-- Используем appender для записи в файл -->
+    </root>
+
+    <!-- Фильтр для игнорирования сообщений ERROR для пакета Telegram API -->
+    <turndownforwhat>
+        <logger name="org.telegram.telegrambots" level="ERROR"/>
+    </turndownforwhat>
+
+</configuration>

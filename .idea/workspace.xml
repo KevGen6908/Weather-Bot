@@ -4,23 +4,58 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6ed9d13b-f1fb-452d-bf38-2e32284bd08a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+    <list default="true" id="6ed9d13b-f1fb-452d-bf38-2e32284bd08a" name="Changes" comment="Add first logic DB">
+      <change afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/DBService/PlaceService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/DBService/UserService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/DBService/WeatherDataService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/DBService/impl/PlaceServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/DBService/impl/UserServiceImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/DBService/impl/WeatherDataImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/CoordinateForWeatherBot.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/file:/home/mikhail/Разработка/6_sem/java/Weather-Bot/src/main/resources/logs/your_log_file.log" beforeDir="false" afterPath="$PROJECT_DIR$/file:/home/mikhail/Разработка/6_sem/java/Weather-Bot/src/main/resources/logs/your_log_file.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/BLusingBD/RequesterDataFromDBorOpenWeatherMap.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/BLusingBD/RequesterDataFromDBOrOpenWeatherMap.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/Test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/Test.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/LoggingConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/LoggingConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/entity/Place.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/entity/Place.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/entity/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/entity/WeatherData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/entity/WeatherData.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/repositories/PlaceRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/repositories/PlaceRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/repositories/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/repositories/UserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/repositories/WeatherDataRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/repositories/WeatherDataRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Client.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/weatherCommunication/WeatherRequestHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/META-INF/applicationContext.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/META-INF/applicationContext.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/ru/spring/core/project/test.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/ru/spring/core/project/test.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Interface" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="ekalugin-branch" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectCodeStyleSettingsMigration">
     <option name="version" value="2" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 0
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="2gCMFkFm46yyN3ipubTWv5BOu68" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -29,20 +64,118 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Application.Main.executor": "Run",
+    "JUnit.test.executor": "Run",
+    "JUnit.test.testDBService.executor": "Run",
+    "JUnit.test.testFunction1.executor": "Run",
+    "JUnit.test.testGettingFromDB.executor": "Run",
+    "JUnit.test.testRequesterDataFromDBOrOpenWeatherMap.executor": "Run",
+    "JUnit.test.testUsingRepositories.executor": "Run",
+    "JUnit.test.testWeatherRequestHandler.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "addBdCherep",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/mikhail/Разработка/6_sem/java/Lab3GrammarMaven",
     "nodejs_package_manager_path": "npm",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="SharedIndexes">
-    <attachedChunks>
-      <set>
-        <option value="bundled-jdk-9f38398b9061-39b83d9b5494-intellij.indexing.shared.core-IU-241.15989.150" />
-        <option value="bundled-js-predefined-1d06a55b98c1-91d5c284f522-JavaScript-IU-241.15989.150" />
-      </set>
-    </attachedChunks>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/resources/META-INF" />
+    </key>
+  </component>
+  <component name="RunManager" selected="JUnit.test.testRequesterDataFromDBOrOpenWeatherMap">
+    <configuration name="test.testDBService" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="WatherBot" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.spring.core.project.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="ru.spring.core.project" />
+      <option name="MAIN_CLASS_NAME" value="ru.spring.core.project.test" />
+      <option name="METHOD_NAME" value="testDBService" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test.testGettingFromDB" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="WatherBot" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.spring.core.project.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="ru.spring.core.project" />
+      <option name="MAIN_CLASS_NAME" value="ru.spring.core.project.test" />
+      <option name="METHOD_NAME" value="testGettingFromDB" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test.testRequesterDataFromDBOrOpenWeatherMap" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="WatherBot" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.spring.core.project.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="ru.spring.core.project" />
+      <option name="MAIN_CLASS_NAME" value="ru.spring.core.project.test" />
+      <option name="METHOD_NAME" value="testRequesterDataFromDBOrOpenWeatherMap" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test.testUsingRepositories" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="WatherBot" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.spring.core.project.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="ru.spring.core.project" />
+      <option name="MAIN_CLASS_NAME" value="ru.spring.core.project.test" />
+      <option name="METHOD_NAME" value="testUsingRepositories" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test.testWeatherRequestHandler" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="WatherBot" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="ru.spring.core.project.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="ru.spring.core.project" />
+      <option name="MAIN_CLASS_NAME" value="ru.spring.core.project.test" />
+      <option name="METHOD_NAME" value="testWeatherRequestHandler" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="JUnit.test.testRequesterDataFromDBOrOpenWeatherMap" />
+        <item itemvalue="JUnit.test.testGettingFromDB" />
+        <item itemvalue="JUnit.test.testWeatherRequestHandler" />
+        <item itemvalue="JUnit.test.testUsingRepositories" />
+        <item itemvalue="JUnit.test.testDBService" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -54,9 +187,58 @@
       <updated>1715197004556</updated>
       <workItem from="1715197005557" duration="1000" />
     </task>
+    <task id="LOCAL-00001" summary="add comments">
+      <option name="closed" value="true" />
+      <created>1715338880380</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1715338880380</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Add first logic DB">
+      <option name="closed" value="true" />
+      <created>1716334528979</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1716334528979</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="add comments" />
+    <MESSAGE value="Add first logic DB" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add first logic DB" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/ru/spring/core/project/BLusingBD/RequesterDataFromDBOrOpenWeatherMap.java</url>
+          <line>37</line>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/test/java/ru/spring/core/project/test.java</url>
+          <line>232</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

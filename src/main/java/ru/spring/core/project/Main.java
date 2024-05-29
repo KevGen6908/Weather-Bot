@@ -1,19 +1,19 @@
 package ru.spring.core.project;
 
-import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.meta.generics.TelegramBot;
-import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
-import ru.spring.core.project.Bot.Bot;
+import ru.spring.core.project.config.BotInitializer;
 
 public class Main {
-    public static void main(String[] args) {
-        try {
-            TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
-            telegramBotsApi.registerBot(new Bot());
+    public static void main(String[] args) throws TelegramApiException {
+        Logger logger = LoggerFactory.getLogger(Main.class);
+        logger.info("This is an info message.");
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("META-INF/applicationContext.xml");
+        Test.test(context);
+        context.getBean(BotInitializer.class).init();
 
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+
     }
 }
