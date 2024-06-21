@@ -24,9 +24,11 @@ public class WeatherData {
     private Timestamp timeOfLoad;
 
     @Column(name = "TIME")
+    @Temporal(TemporalType.TIME)
     private LocalTime time;
 
     @Column(name = "DATE")
+    @Temporal(TemporalType.DATE)
     private LocalDate date;
 
     @Column(name = "DAY_OF_WEEK")

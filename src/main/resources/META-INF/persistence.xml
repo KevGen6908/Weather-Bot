@@ -15,7 +15,7 @@
             <property name="hibernate.format_sql" value="true"/>
             <!-- JDBC Database connection settings -->
             <property name="javax.persistence.jdbc.driver" value="org.postgresql.Driver"/>
-            <property name="javax.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/postgres"/>
+            <property name="javax.persistence.jdbc.url" value="jdbc:postgresql://postgres:5432/postgres"/>
             <property name="javax.persistence.jdbc.user" value="postgres"/>
             <property name="javax.persistence.jdbc.password" value="hippie"/>
         </properties>

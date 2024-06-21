@@ -331,10 +331,10 @@ public class Bot extends TelegramLongPollingBot {
         currentUser.getSetOfPlaces().add(userCoordinates);
         userRepository.save(currentUser);
 
-        var weatherData = requesterData.getWeatherDataByPlaceNow(userCoordinates);
+/*        var weatherData = requesterData.getWeatherDataByPlaceNow(userCoordinates);
         if (weatherData == null) {
             weatherData = writeWeatherForDayAndGetForNow(currentLocation, userCoordinates);
-        }
+        }*/
 
         try {
 
