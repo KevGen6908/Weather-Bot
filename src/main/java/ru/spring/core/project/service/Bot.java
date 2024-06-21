@@ -16,19 +16,25 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.spring.core.project.BLusingBD.RequesterDataFromDBOrOpenWeatherMap;
+import ru.spring.core.project.DBService.PlaceService;
+import ru.spring.core.project.DBService.impl.UserServiceImpl;
 import ru.spring.core.project.config.BotConfig;
+import ru.spring.core.project.entity.Place;
+import ru.spring.core.project.entity.User;
+import ru.spring.core.project.repositories.PlaceRepository;
+import ru.spring.core.project.repositories.UserRepository;
+import ru.spring.core.project.repositories.WeatherDataRepository;
 import ru.spring.core.project.statemachine.BotState;
 import ru.spring.core.project.entity.WeatherData;
+import ru.spring.core.project.weatherCommunication.CoordinateForWeatherBot;
 import ru.spring.core.project.weatherCommunication.WeatherRequestHandler;
 
 
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+
+import static ru.spring.core.project.utils.WeatherHelper.formatWeather;
 
 
 @Service
@@ -36,12 +42,18 @@ public class Bot extends TelegramLongPollingBot {
 
     @Autowired
     private final BotConfig config;
+
     @Autowired
     private WeatherRequestHandler weatherRequestHandler;
-    static final String HELP_MESSAGE = "This bot идет нахуй потому что тут писать еще нечего";
+
+    static final String HELP_MESSAGE = "Welcome!\n The /start command initializes the work of the bot\n " +
+            "The /weather command provides functionality for choosing a convenient mode of operation of the bot.\n The /help command show you a description of all commands ";
+
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
+
     private BotState currentState = BotState.START;
-    private ClassPathXmlApplicationContext context;
+
+    private Map<Long, User> currentUserMap = new HashMap<>();
 
     /**
      * A map defining the transition actions for the start state.
@@ -91,16 +103,31 @@ public class Bot extends TelegramLongPollingBot {
      */
     private final Map<String, Consumer<Update>> handleLocationOrCityAction = Map.of(
             "Type City Name", this::handleCityNameInput,
-            "Send Location", this::handleLocationInput,
+            //"Send Location", this::handleLocationInput,
             "Exit", this::handleExit
     );
 
+    @Autowired
+    private UserRepository userRepository;
 
+    @Autowired
+    private UserServiceImpl userService;
+
+    @Autowired
+    private PlaceRepository placeRepository;
+
+    @Autowired
+    private WeatherDataRepository weatherDataRepository;
+
+    @Autowired
+    private PlaceService placeService;
+
+    @Autowired
+    private RequesterDataFromDBOrOpenWeatherMap requesterData;
 
     @Autowired
     public Bot(ClassPathXmlApplicationContext context) {
         this.config = context.getBean(BotConfig.class);
-        this.context = context;
 
         weatherRequestHandler = context.getBean(WeatherRequestHandler.class);// = new WeatherRequestHandler(config);
         List<BotCommand> listOfCommands = new ArrayList();
@@ -129,7 +156,21 @@ public class Bot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if(update.hasMessage() && update.getMessage().hasText()){
             long chatId = update.getMessage().getChatId();
-            String message = update.getMessage().getText();
+            String message = update.getMessage().getText().trim();
+            String userName = update.getMessage().getChat().getUserName();
+
+
+
+            List<User> allUsers = userRepository.findAllUsersByChatId(chatId);
+            User currentUser;
+            if(allUsers.isEmpty()){
+                currentUser = new User(userName, chatId);
+                userService.addUser(currentUser);
+            } else {
+                currentUser = allUsers.get(0);
+            }
+
+            currentUserMap.put(chatId, currentUser);
 
             switch (currentState){
                 case START:
@@ -154,7 +195,7 @@ public class Bot extends TelegramLongPollingBot {
                     if(message.equals("Type City Name")){
                         sendMessage(chatId, "Please type the name of the city.");
                         changeBotState(BotState.AWAITING_CITY_NAME);
-                    }else if(message.equals("exit")){
+                    }else if(message.equals("Exit")){
                         changeBotState(BotState.START);
                     }else{
                         sendMessage(chatId, "Unknown command. Type /help for assistance.");
@@ -273,17 +314,31 @@ public class Bot extends TelegramLongPollingBot {
      */
     private void handleLocation(Location location, long chatId) {
 
-
-  /*
-
-        sendMessage(chatId, "We will start finding your city.");
+        sendMessage(chatId, "We will start finding your location.");
         Double latitude = location.getLatitude();
         Double longitude = location.getLongitude();
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
 
+        User currentUser = currentUserMap.get(chatId);
+        CoordinateForWeatherBot currentLocation = new CoordinateForWeatherBot(latitude, longitude);
+        if (currentUser == null) {
+            sendMessage(chatId, "User not found. Please start the bot with /start command.");
+            return;
+        }
+
+        Place userCoordinates = getCurrentPlace(currentLocation);
+        currentUser.getSetOfPlaces().add(userCoordinates);
+        userRepository.save(currentUser);
+
+        var weatherData = requesterData.getWeatherDataByPlaceNow(userCoordinates);
+        if (weatherData == null) {
+            weatherData = writeWeatherForDayAndGetForNow(currentLocation, userCoordinates);
+        }
+
         try {
-            var response = weatherRequestHandler.getWeatherDataCoordinatesNow(latitude,longitude);
+
+            var response = weatherRequestHandler.getWeatherDataByCoordinatesNow(currentLocation);
             String weather = response.weatherResponse();
             message.setText(weather);
             execute(message);
@@ -293,12 +348,6 @@ public class Bot extends TelegramLongPollingBot {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
-        */
-
-
-
-
     }
 
     /**
@@ -370,12 +419,14 @@ public class Bot extends TelegramLongPollingBot {
         keyboardMarkup.setResizeKeyboard(true);
         keyboardMarkup.setOneTimeKeyboard(true);
         List<KeyboardRow> keyboard = new ArrayList<>();
-
         KeyboardRow row = new KeyboardRow();
-        KeyboardButton buttonLocation = new KeyboardButton();
-        buttonLocation.setText("Send Location");
-        buttonLocation.setRequestLocation(true);
-        row.add(buttonLocation);
+
+        if (forecastDays != 0 && forecastDays != 1 && forecastDays != 4) {
+            KeyboardButton buttonLocation = new KeyboardButton();
+            buttonLocation.setText("Send Location");
+            buttonLocation.setRequestLocation(true);
+            row.add(buttonLocation);
+        }
 
         KeyboardButton buttonCity = new KeyboardButton();
         buttonCity.setText("Type City Name");
@@ -432,35 +483,6 @@ public class Bot extends TelegramLongPollingBot {
         changeBotState(BotState.START);
     }
 
-//    private void handleCityNameForecastInput(Update update) {
-//        long chatId = update.getMessage().getChatId();
-//        String cityName = update.getMessage().getText();
-//        int forecastDays = -2; // default invalid value
-//
-//        if (currentState == BotState.FORECAST_AWAITING_CITY_NAME_DAY) {
-//            forecastDays = 0;
-//        } else if (currentState == BotState.FORECAST_AWAITING_CITY_NAME_TWO_DAYS) {
-//            forecastDays = 1;
-//        } else if (currentState == BotState.FORECAST_AWAITING_CITY_NAME_FIVE_DAYS) {
-//            forecastDays = 4;
-//        }
-//
-//        if (forecastDays >= 0) {
-//            try {
-//                ArrayList<WeatherData> weatherData = weatherRequestHandler.getResponseCityNDay(cityName, forecastDays);
-//                sendWeatherData(chatId, weatherData);
-//            } catch (Exception e) {
-//                logger.error("Error processing forecast input", e);
-//                sendMessage(chatId, "Error occurred while processing your request.");
-//            }
-//        } else {
-//            sendMessage(chatId, "Sorry, an error occurred while processing your request.");
-//        }
-//
-//        changeBotState(BotState.Mode_Selection); // Вернуться в исходное состояние
-//    }
-
-
     /**
      * Processes the user's input for the city name and retrieves weather information.
      * Updates the bot state to start after processing.
@@ -470,7 +492,7 @@ public class Bot extends TelegramLongPollingBot {
         long chatId = update.getMessage().getChatId();
         String cityName = update.getMessage().getText();
         try {
-            ArrayList<WeatherData> weatherData = weatherRequestHandler.getWeatherDataByCityNameNDay(cityName, 0);
+            List<WeatherData> weatherData = weatherRequestHandler.getWeatherDataByCityNameNDay(cityName, 0);
             sendWeatherData(chatId, weatherData);
         } catch (Exception e) {
             sendMessage(chatId, "Error occurred while processing your request.");
@@ -490,7 +512,7 @@ public class Bot extends TelegramLongPollingBot {
      * @param chatId The chat ID to which the weather data message will be sent.
      * @param weatherDataList An ArrayList of WeatherData objects containing weather information to be formatted and sent.
      */
-    private void sendWeatherData(long chatId, ArrayList<WeatherData> weatherDataList) {
+    private void sendWeatherData(long chatId, List<WeatherData> weatherDataList) {
         StringJoiner message = new StringJoiner("\n");
         for (WeatherData weatherData : weatherDataList) {
             message.add(String.format("Date: %s, Time: %s, Temperature: %.2f°C, Description: %s",
@@ -502,38 +524,6 @@ public class Bot extends TelegramLongPollingBot {
 
         sendMessage(chatId, message.toString());
     }
-
-//    private void sendMessage(long chatId, String textToSend) {
-//        SendMessage message = new SendMessage();
-//        message.setChatId(String.valueOf(chatId));
-//        message.setText(textToSend);
-//
-//        try {
-//            execute(message);
-//        } catch (TelegramApiException e) {
-//            logger.error("Error sending message to user {}", chatId, e);
-//        }
-//    }
-
-//    private void handleLocation(Location location, long chatId) {
-//       sendMessage(chatId, "Thank you for using the bot. We will start finding your city.");
-//       Double latitude = location.getLatitude();
-//       Double longitude = location.getLongitude();
-//       SendMessage message = new SendMessage();
-//       message.setChatId(chatId);
-//
-//       try {
-//           var response = weatherRequestHandler.getWeatherDataCoordinatesNow(latitude,longitude);
-//           String weather = response.weatherResponse();
-//           message.setText(weather);
-//           execute(message);
-//           logger.info("Send message to user {0}", chatId);
-//       } catch (TelegramApiException e) {
-//           logger.error("Error sending location", e.getMessage());
-//       } catch (Exception e) {
-//           throw new RuntimeException(e);
-//       }
-//    }
 
     /**
      * Processes the user's input for location sharing and retrieves weather information.
@@ -636,6 +626,11 @@ public class Bot extends TelegramLongPollingBot {
      * @param update The update received from Telegram API containing the user message.
      */
     private void handleWeatherCommand(Update update) {
+
+        sendMessage(update.getMessage().getChatId(), "For the bot to work correctly, you need to select the operating mode. " +
+                "After that, either select the enter city command or if you want to find out the current weather," +
+                " you can enter your location.");
+
         long chatId = update.getMessage().getChatId();
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(chatId));
@@ -678,21 +673,74 @@ public class Bot extends TelegramLongPollingBot {
         long chatId = update.getMessage().getChatId();
         String cityName = update.getMessage().getText();
 
-       String response = weatherRequestHandler.getAnswerCityNowReturnString(cityName);
-       SendMessage sendMessage = new SendMessage();
-       sendMessage.setChatId(String.valueOf(chatId));
-       sendMessage.setText(response);
+        User currentUser = currentUserMap.get(chatId);
 
-       try {
-           execute(sendMessage);
-       } catch (TelegramApiException e) {
-           logger.error("Error requesting location", e);
-       } catch (Exception e) {
-           throw new RuntimeException(e);
-       }
+        if (currentUser == null) {
+            sendMessage(chatId, "User not found. Please start the bot with /start command.");
+            return;
+        }
+
+        Place userPlace = getCurrentPlace(cityName);
+        currentUser.getSetOfPlaces().add(userPlace);
+        userRepository.save(currentUser);
+
+        var weatherData = requesterData.getWeatherDataByPlaceNow(userPlace);
+        if (weatherData == null) {
+            weatherData = writeWeatherForDayAndGetForNow(cityName, userPlace);
+        }
+
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setText(formatWeather(weatherData, cityName));
+
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            logger.error("Error requesting location", e);
+        }
 
         changeBotState(BotState.START);
     }
+
+    private WeatherData writeWeatherForDayAndGetForNow(String cityName, Place userPlace) {
+        return writeWeatherForDayAndGetForNow(cityName, userPlace, 1);
+    }
+
+    private WeatherData writeWeatherForDayAndGetForNow(String cityName, Place userPlace, int days) {
+        var cityWeather = weatherRequestHandler.getWeatherDataByCityNameNDay(cityName, days);
+        for (WeatherData data : cityWeather) {
+            data.setPlace(userPlace);
+            weatherDataRepository.save(data);
+        }
+        return cityWeather.getFirst();
+    }
+
+    private WeatherData writeWeatherForDayAndGetForNow(CoordinateForWeatherBot coordinate, Place userPlace) {
+        var cityWeather = weatherRequestHandler.getWeatherDataByCoordinatesNow(coordinate);
+//        for (WeatherData data : cityWeather) {
+//            data.setPlace(userPlace);
+//            weatherDataRepository.save(data);
+//        }
+        return cityWeather; //.getFirst();
+    }
+
+    private Place getCurrentPlace(String cityName) {
+        // Проверка, существует ли уже место с таким названием
+        List<Place> existingPlaceOpt = placeRepository.findAllPlacesByPlaceName(cityName);
+        if (existingPlaceOpt.isEmpty()) {
+            var userPlace = new Place(cityName);
+            placeService.addPlace(userPlace);
+            return userPlace;
+        }
+        return existingPlaceOpt.getFirst();
+    }
+
+    private Place getCurrentPlace(CoordinateForWeatherBot coordinate) {
+        var userPlace = new Place(coordinate);
+        placeService.addPlace(userPlace);
+        return userPlace;
+    }
+
 
     /**
      * Retrieves the weather forecast for the specified number of days based on the city name provided by the user.
@@ -700,33 +748,30 @@ public class Bot extends TelegramLongPollingBot {
      * @param cityName The name of the city for which the weather forecast is to be retrieved.
      * @param days The number of days for the weather forecast.
      */
-    private void getForecastCity(long chatId, String cityName, int days) throws Exception {
-        ArrayList<WeatherData> response = weatherRequestHandler.getWeatherDataByCityNameNDay(cityName, days);
+    private void getForecastCity(long chatId, String cityName, int days) {
+        List<WeatherData> response = weatherRequestHandler.getWeatherDataByCityNameNDay(cityName, days);
         logger.info("Weather forecast for the city {}:", cityName);
 
-
-        Map<String, List<WeatherData>> groupedByDate = response.stream()
-                .collect(Collectors.groupingBy(weatherData -> weatherData.getDate().toString()));
-
-
-        String message = "Weather forecast for the city " + cityName + ":\n";
-        for (Map.Entry<String, List<WeatherData>> entry : groupedByDate.entrySet()) {
-            String date = entry.getKey();
-            List<WeatherData> dailyForecast = entry.getValue();
-
-            message += "Date: " + date + "\n";
-            for (WeatherData weatherData : dailyForecast) {
-                message += "Time: " + weatherData.getTime() + "\n" +
-                        "Temperature: " + weatherData.getTemperature() + "°C\n" +
-                        "Description: " + weatherData.getWeatherStateMain() + "\n" +
-                        "Humidity: " + weatherData.getHumidity() + "%\n" +
-                        "Pressure: " + weatherData.getPressure() + " гПа\n\n";
-            }
+        User currentUser = currentUserMap.get(chatId);
+        if (currentUser == null) {
+            sendMessage(chatId, "User not found. Please start the bot with /start command.");
+            return;
         }
+
+        Place currentPlace = getCurrentPlace(cityName);
+        currentUser.getSetOfPlaces().add(currentPlace);
+        userRepository.save(currentUser);
+
+        var weatherDataForBD = requesterData.getWeatherDataByPlaceNDay(currentPlace, days);
+        if (weatherDataForBD == null){
+            weatherDataForBD = (List<WeatherData>) writeWeatherForDayAndGetForNow(cityName, currentPlace, days);
+        }
+
+
 
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(String.valueOf(chatId));
-        sendMessage.setText(message);
+        sendMessage.setText(formatWeather(weatherDataForBD, cityName));
 
         try {
             execute(sendMessage);

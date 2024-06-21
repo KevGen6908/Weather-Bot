@@ -11,9 +11,6 @@ public class Main {
         Logger logger = LoggerFactory.getLogger(Main.class);
         logger.info("This is an info message.");
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("META-INF/applicationContext.xml");
-        Test.test(context);
         context.getBean(BotInitializer.class).init();
-
-
     }
 }

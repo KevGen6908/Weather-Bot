@@ -108,6 +108,7 @@ public class test {
 
 
     }
+
     @Test
     public void testDBService() throws Exception {
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("META-INF/applicationContext.xml");
@@ -219,9 +220,6 @@ public class test {
 
 
     }
-
-
-
 
     @Test
     public void testGettingFromDB() throws Exception {

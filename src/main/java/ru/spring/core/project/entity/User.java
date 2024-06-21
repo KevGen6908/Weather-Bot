@@ -1,6 +1,7 @@
 package ru.spring.core.project.entity;
 
 import jakarta.persistence.*;
+import ru.spring.core.project.repositories.UserRepository;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -19,13 +20,14 @@ public class User {
     @Column(name = "CHAT_ID")
     private long chatId;
 
-    @ManyToMany(cascade = CascadeType.MERGE , fetch = FetchType.LAZY)       //Merge - нужен для того чтобы уже сохраненные объекты не сохранялись заново, иначе ALL
+    @ManyToMany(cascade = CascadeType.MERGE , fetch = FetchType.EAGER)
     @JoinTable(
             name = "USER_PLACE",
             joinColumns = @JoinColumn(name = "USER_ID"),
             inverseJoinColumns = @JoinColumn(name = "PLACE_ID")
     )
     Set<Place> setOfPlaces;
+
 
 
     public Set<Place> getSetOfPlaces() {
@@ -46,9 +48,11 @@ public class User {
     public Long getChatId() {
         return chatId;
     }
+
     public void setId(long id) {
         this.id = id;
     }
+
     public void setUserName(String userName) {
         this.userName = userName;
     }
@@ -57,9 +61,8 @@ public class User {
         this.chatId = chatId;
     }
 
-    public User(){
+    public User(){}
 
-    }
     public User(String userName,Long chatId){
         this.userName=userName;
         this.chatId=chatId;
@@ -87,9 +90,13 @@ public class User {
                 ", chatId='" + chatId + '\'' +
                 '}';
     }
-    public void addNewPlace(Place place){
-        if(setOfPlaces==null)
-            setOfPlaces= new HashSet<>();
-        setOfPlaces.add(place);
+    public void addNewPlace(Place place) {
+        if (setOfPlaces == null) {
+            setOfPlaces = new HashSet<>();
+        }
+        if (!setOfPlaces.contains(place)) {
+            setOfPlaces.add(place);
+        }
     }
+
 }

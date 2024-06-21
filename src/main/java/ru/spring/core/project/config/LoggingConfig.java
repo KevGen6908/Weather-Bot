@@ -11,17 +11,14 @@ import java.util.logging.Logger;
 @Configuration
 public class LoggingConfig {
     public static void configure() throws IOException {
-        // Получение корневого логгера
         Logger rootLogger = Logger.getLogger("");
 
-        // Установка уровня логирования
         rootLogger.setLevel(Level.ALL);
 
-        // Создание обработчика для записи в файл
         Handler fileHandler = new FileHandler("application.log");
+
         fileHandler.setLevel(Level.ALL);
 
-        // Добавление обработчика к корневому логгеру
         rootLogger.addHandler(fileHandler);
     }
 }

@@ -19,10 +19,10 @@ public class Place {
 
 
 
-    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Set<WeatherData> setOfWeatherData;
 
-    @ManyToMany(mappedBy = "setOfPlaces")
+    @ManyToMany(mappedBy = "setOfPlaces", fetch = FetchType.EAGER)
     private Set<User> setOfUser;
 
     @Embedded

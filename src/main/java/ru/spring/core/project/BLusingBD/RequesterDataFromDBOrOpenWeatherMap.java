@@ -1,13 +1,10 @@
 package ru.spring.core.project.BLusingBD;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import ru.spring.core.project.DBService.impl.WeatherDataImpl;
 import ru.spring.core.project.entity.Place;
 import ru.spring.core.project.entity.WeatherData;
-import ru.spring.core.project.weatherCommunication.CoordinateForWeatherBot;
 import ru.spring.core.project.weatherCommunication.WeatherRequestHandler;
 
 import java.time.LocalDate;
@@ -21,14 +18,9 @@ public class RequesterDataFromDBOrOpenWeatherMap {
     private WeatherRequestHandler weatherRequestHandler;
 
     @Autowired
-    private ApplicationContext context;
+    WeatherDataImpl weatherDataService;
 
-    @Autowired
-    public RequesterDataFromDBOrOpenWeatherMap() {
-    }
-
-    public List<WeatherData> getWeatherDataByPlaceNDay(Place place, int amountDays) throws Exception {
-        WeatherDataImpl weatherDataService = context.getBean(WeatherDataImpl.class);
+    public List<WeatherData> getWeatherDataByPlaceNDay(Place place, int amountDays) {
         LocalDate currDate =  LocalDate.now();
         LocalTime currTime =  LocalTime.now();
         List<WeatherData> ans = new ArrayList<>();
@@ -37,7 +29,7 @@ public class RequesterDataFromDBOrOpenWeatherMap {
             ans = weatherDataService.getAllWeatherDataByPlaceAndDateAfterCurrentTime(place.getPlaceName(),currTime,currDate);
             if(ans.isEmpty()){
                 ans = weatherRequestHandler.getWeatherDataByCityNameNDay(place.getPlaceName(), amountDays);
-                for(WeatherData wd :ans){
+                for(WeatherData wd : ans){
                     if(wd.getDate().equals(currDate)) {
                         wd.setPlace(place);
                         weatherDataService.addWeatherData(wd);
@@ -49,15 +41,14 @@ public class RequesterDataFromDBOrOpenWeatherMap {
             ans = weatherRequestHandler.getWeatherDataByCoordsNDay(place.getCoordinate(), amountDays);
         }
         else{
-            throw new Exception("Name and Coordinates is empty");
+            throw new RuntimeException("Name and Coordinates is empty");
         }
 
         return ans;
     }
 
 
-    public WeatherData getWeatherDataByPlaceNow(Place place) throws Exception {
-        WeatherDataImpl weatherDataService = context.getBean(WeatherDataImpl.class);
+    public WeatherData getWeatherDataByPlaceNow(Place place) {
         LocalDate currDate =  LocalDate.now();
         LocalTime currTime =  LocalTime.now();
         WeatherData ans;
@@ -78,12 +69,10 @@ public class RequesterDataFromDBOrOpenWeatherMap {
             ans = weatherRequestHandler.getWeatherDataByCoordinatesNow(place.getCoordinate());
         }
         else{
-            throw new Exception("Name and Coordinates are empty!");
+            throw new RuntimeException("Name and Coordinates are empty!");
         }
 
         return ans;
     }
-
-
 }
 

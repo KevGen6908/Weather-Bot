@@ -8,9 +8,13 @@ import java.util.List;
 @Service
 public interface UserService {
     User addUser(User user);
+
     void deleteUserById(Long id);
+
     void deleteUserByChatId(Long chatId);
+
     List<User> getAll();
+
     List<User> getUsersByChatId(Long chatId);
 
 

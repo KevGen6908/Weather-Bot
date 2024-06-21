@@ -15,7 +15,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User addUser(User user){
-        User savedUser =userRepository.saveAndFlush(user);
+        User savedUser = userRepository.saveAndFlush(user);
         return savedUser;
     }
 
@@ -37,5 +37,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getUsersByChatId(Long chatId){
         return userRepository.findAllUsersByChatId(chatId);
+    }
+
+    public boolean checkIfUserExists(Long chatId, String username) {
+        return userRepository.existsByChatIdAndUsername(chatId, username);
     }
 }

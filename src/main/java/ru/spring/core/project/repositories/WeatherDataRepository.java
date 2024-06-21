@@ -30,8 +30,6 @@ public interface WeatherDataRepository extends JpaRepository<WeatherData,Long> {
             "  ORDER BY wd.\"time\" ASC; " , nativeQuery = true)
     List<WeatherData> findAllWeatherDataByPlace(@Param("cityName") String cityName);
 
-
-
     @Query(value = "SELECT wd.* " +
             "FROM WEATHER_DATA wd " +
             "JOIN PLACE p ON wd.place_id = p.id " +

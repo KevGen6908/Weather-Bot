@@ -3,8 +3,8 @@ package ru.spring.core.project.weatherCommunication;
 import java.util.Objects;
 import jakarta.persistence.Embeddable;
 @Embeddable
-public class CoordinateForWeatherBot {                        //Название?
-    private double latitude; // удалить
+public class CoordinateForWeatherBot {
+    private double latitude;
     private double longitude;
     public CoordinateForWeatherBot(){
 
