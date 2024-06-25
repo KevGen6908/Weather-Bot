@@ -18,5 +18,5 @@ WeatherBot is a Telegram bot that provides weather forecasts for any location in
 # Launching the application
 In order for the application to start, you need to download Docker image from Docker hub https://hub.docker.com/r/kevgen/telegram-weather-bot and launch the application with the command
 ```docker compose up -d weatherbot ```
-#Link on bot 
+# Link on bot 
 https://t.me/killBonJoviWeatherBot
