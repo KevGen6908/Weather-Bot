@@ -1,0 +1,144 @@
+---
+- name: Create Weather-Bot VM in Yandex Cloud
+  hosts: localhost
+  gather_facts: false
+  vars:
+    tf_dir: "./tf"
+  tasks:
+    - name: Terraform apply
+      ansible.builtin.command:
+        argv:
+          - terraform
+          - -chdir={{ tf_dir }}
+          - apply
+          - -auto-approve
+      environment:
+        TF_VAR_cloud_id: "{{ lookup('env', 'YC_CLOUD_ID') }}"
+        TF_VAR_folder_id: "{{ lookup('env', 'YC_FOLDER_ID') }}"
+        TF_VAR_token: "{{ lookup('env', 'YC_TOKEN') }}"
+        TF_VAR_zone: "{{ lookup('env', 'YC_ZONE') | default('ru-central1-b', true) }}"
+        TF_VAR_vm_user: "{{ lookup('env', 'VM_USER') | default('yc-user', true) }}"
+        TF_VAR_ssh_public_key_path: "{{ lookup('env', 'SSH_PUBLIC_KEY_PATH') }}"
+      changed_when: true
+
+    - name: Get external IP from terraform output
+      ansible.builtin.command:
+        argv:
+          - terraform
+          - -chdir={{ tf_dir }}
+          - output
+          - -raw
+          - external_ip
+      register: tf_external_ip
+      changed_when: false
+
+    - name: Add VM to dynamic inventory
+      ansible.builtin.add_host:
+        name: weather_bot_vm
+        ansible_host: "{{ tf_external_ip.stdout }}"
+        ansible_user: "{{ lookup('env', 'VM_USER') | default('yc-user', true) }}"
+        ansible_ssh_private_key_file: "{{ lookup('env', 'SSH_PRIVATE_KEY_PATH') }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+
+- name: Configure and deploy Weather-Bot
+  hosts: weather_bot_vm
+  become: true
+  vars:
+    app_root: /opt/weather-bot
+    app_dir: /opt/weather-bot/app
+    app_jar_src: "{{ lookup('env', 'APP_JAR_PATH') }}"
+    app_jar_dst: /opt/weather-bot/app/WeatherBot.jar
+    service_name: weather-bot
+    service_user: weatherbot
+    service_group: weatherbot
+    db_password: "{{ lookup('env', 'DB_PASSWORD') }}"
+    bot_name: "{{ lookup('env', 'BOT_NAME') }}"
+    bot_token: "{{ lookup('env', 'BOT_TOKEN') }}"
+    weather_api_key: "{{ lookup('env', 'WEATHER_API_KEY') }}"
+  tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 5
+
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - openjdk-17-jre-headless
+          - postgresql
+          - postgresql-contrib
+        update_cache: true
+        state: present
+
+    - name: Ensure service group exists
+      ansible.builtin.group:
+        name: "{{ service_group }}"
+        system: true
+        state: present
+
+    - name: Ensure service user exists
+      ansible.builtin.user:
+        name: "{{ service_user }}"
+        group: "{{ service_group }}"
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ app_root }}"
+        create_home: false
+        state: present
+
+    - name: Create application directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ service_user }}"
+        group: "{{ service_group }}"
+        mode: "0755"
+      loop:
+        - "{{ app_root }}"
+        - "{{ app_dir }}"
+        - "{{ app_dir }}/logs"
+
+    - name: Ensure postgres user password is set
+      ansible.builtin.shell: |
+        sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '{{ db_password }}';"
+      changed_when: true
+
+    - name: Copy application jar
+      ansible.builtin.copy:
+        src: "{{ app_jar_src }}"
+        dest: "{{ app_jar_dst }}"
+        owner: "{{ service_user }}"
+        group: "{{ service_group }}"
+        mode: "0755"
+
+    - name: Copy logback.xml
+      ansible.builtin.copy:
+        src: "../src/main/resources/logback.xml"
+        dest: "{{ app_dir }}/logback.xml"
+        owner: "{{ service_user }}"
+        group: "{{ service_group }}"
+        mode: "0644"
+
+    - name: Render application.properties
+      ansible.builtin.template:
+        src: template/application.properties.j2
+        dest: "{{ app_dir }}/application.properties"
+        owner: "{{ service_user }}"
+        group: "{{ service_group }}"
+        mode: "0644"
+
+    - name: Install systemd unit
+      ansible.builtin.template:
+        src: template/weather-bot.service.j2
+        dest: "/etc/systemd/system/{{ service_name }}.service"
+        mode: "0644"
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and restart service
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+        enabled: true
+        state: restarted

@@ -1,24 +1,26 @@
-version: '3.8'
-
 networks:
   my_network: {}
 
 services:
   weatherbot:
-    image: kevgen/telegram-weather-bot
-    ports:
-      - "8080:8080"
+    build:
+      context: .
+    network_mode: "host"
+    environment:
+      JAVA_TOOL_OPTIONS: "-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
+      db.url: "jdbc:postgresql://127.0.0.1:5432/postgres?sslmode=disable"
     depends_on:
-      - db
-    networks:
-      - my_network
+      db:
+        condition: service_healthy
 
   db:
     image: postgres
+    network_mode: "host"
     hostname: postgres
-    ports:
-      - "5432:5432"
     environment:
-      POSTGRES_PASSWORD: hippie
-    networks:
-      - my_network
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

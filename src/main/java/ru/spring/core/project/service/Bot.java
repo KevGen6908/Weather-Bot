@@ -138,7 +138,7 @@ public class Bot extends TelegramLongPollingBot {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
             logger.info("Create menu bot");
         } catch (TelegramApiException e) {
-            logger.error("Error setting bot commands", e.getMessage());
+            logger.error("Error setting bot commands", e);
         }
     }
 

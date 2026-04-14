@@ -32,7 +32,7 @@ public class BotInitializer {
         try {
             telegramBotsApi.registerBot(bot);
         } catch (TelegramApiException e) {
-            logger.error("Error occurred {} ", e.getMessage());
+            logger.error("Error occurred while registering Telegram bot", e);
         }
     }
 }

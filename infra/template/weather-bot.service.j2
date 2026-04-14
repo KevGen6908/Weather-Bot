@@ -1,0 +1,24 @@
+[Unit]
+Description=Weather Bot Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=weatherbot
+Group=weatherbot
+WorkingDirectory=/opt/weather-bot/app
+
+Environment="JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true -Djava.net.preferIPv6Addresses=false"
+Environment="db.url=jdbc:postgresql://127.0.0.1:5432/postgres?sslmode=disable"
+
+ExecStart=/usr/bin/java -jar /opt/weather-bot/app/WeatherBot.jar --spring.config.location=/opt/weather-bot/app/application.properties
+
+Restart=always
+RestartSec=5
+
+StandardOutput=append:/opt/weather-bot/app/logs/weather-bot.log
+StandardError=append:/opt/weather-bot/app/logs/weather-bot-error.log
+
+[Install]
+WantedBy=multi-user.target
