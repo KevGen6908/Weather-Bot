@@ -26,7 +26,7 @@ pipeline {
             steps {
                 sh '''
                     set -eux
-                    mvn -B clean package -DskipTests
+                    /usr/share/maven/bin/mvn -B clean package -DskipTests
                     ls -lah target
                     test -f target/WeatherBot.jar
                 '''
@@ -37,7 +37,7 @@ pipeline {
             steps {
                 sh '''
                     set -eux
-                    mvn -B test
+                    /usr/share/maven/bin/mvn -B test
                 '''
             }
         }
