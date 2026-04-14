@@ -14,7 +14,6 @@ pipeline {
         ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
 
-
     stages {
         stage('Checkout') {
             steps {
@@ -73,24 +72,35 @@ pipeline {
         }
 
         stage('Terraform Apply') {
-            when {
-                branch 'main'
-            }
             steps {
                 dir('infra') {
-                    sh '''
-                        set -eux
-                        terraform -chdir=tf apply -auto-approve tfplan
-                        terraform -chdir=tf output
-                    '''
+                    withCredentials([
+                        string(credentialsId: 'yc-cloud-id', variable: 'YC_CLOUD_ID'),
+                        string(credentialsId: 'yc-folder-id', variable: 'YC_FOLDER_ID'),
+                        string(credentialsId: 'yc-token', variable: 'YC_TOKEN'),
+                        file(credentialsId: 'ssh-public-key', variable: 'SSH_PUBLIC_KEY_FILE')
+                    ]) {
+                        sh '''
+                            set -eux
+                            mkdir -p .jenkins-secrets
+                            cp "$SSH_PUBLIC_KEY_FILE" .jenkins-secrets/id_rsa.pub
+
+                            terraform -chdir=tf apply -auto-approve \
+                              -var="cloud_id=$YC_CLOUD_ID" \
+                              -var="folder_id=$YC_FOLDER_ID" \
+                              -var="token=$YC_TOKEN" \
+                              -var="zone=$YC_ZONE" \
+                              -var="ssh_public_key_path=$(pwd)/.jenkins-secrets/id_rsa.pub" \
+                              -var="vm_user=$VM_USER"
+
+                            terraform -chdir=tf output
+                        '''
+                    }
                 }
             }
         }
 
         stage('Deploy with Ansible') {
-            when {
-                branch 'main'
-            }
             steps {
                 dir('infra') {
                     withCredentials([
@@ -106,7 +116,6 @@ pipeline {
                     ]) {
                         sh '''
                             set -eux
-
                             mkdir -p .jenkins-secrets
                             cp "$SSH_PUBLIC_KEY_FILE" .jenkins-secrets/id_rsa.pub
                             cp "$SSH_PRIVATE_KEY_FILE" .jenkins-secrets/id_rsa
