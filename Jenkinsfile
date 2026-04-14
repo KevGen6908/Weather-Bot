@@ -14,10 +14,6 @@ pipeline {
         ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
 
-    tools {
-        maven 'Maven'
-    }
-
     stages {
         stage('Checkout') {
             steps {
