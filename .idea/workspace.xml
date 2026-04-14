@@ -4,27 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6ed9d13b-f1fb-452d-bf38-2e32284bd08a" name="Changes" comment="Add first logic DB">
-      <change afterPath="$PROJECT_DIR$/Jenkinsfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/.terraformrc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/deploy-yc-fatjar.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/run-deploy.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/template/application.properties.j2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/template/weather-bot.service.j2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/tf/00-variables.tf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/tf/01-main.tf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/tf/02-output.tf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/infra/tf/cloud-init.yaml.tftpl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/BotInitializer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/config/BotInitializer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/ru/spring/core/project/service/Bot.java" afterDir="false" />
+    <list default="true" id="6ed9d13b-f1fb-452d-bf38-2e32284bd08a" name="Changes" comment="create jenkins pipline">
       <change beforePath="$PROJECT_DIR$/src/main/resources/META-INF/applicationContext.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/META-INF/applicationContext.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/logback.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/logback.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -210,7 +192,7 @@
       <workItem from="1775502059137" duration="4942000" />
       <workItem from="1776079397017" duration="33000" />
       <workItem from="1776103916756" duration="2535000" />
-      <workItem from="1776152758985" duration="571000" />
+      <workItem from="1776152758985" duration="1117000" />
     </task>
     <task id="LOCAL-00001" summary="add comments">
       <option name="closed" value="true" />
@@ -228,7 +210,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716334528979</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="create jenkins pipline">
+      <option name="closed" value="true" />
+      <created>1776153453088</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1776153453088</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -248,7 +238,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="add comments" />
     <MESSAGE value="Add first logic DB" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add first logic DB" />
+    <MESSAGE value="create jenkins pipline" />
+    <option name="LAST_COMMIT_MESSAGE" value="create jenkins pipline" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
