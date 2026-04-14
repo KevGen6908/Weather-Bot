@@ -14,6 +14,7 @@ pipeline {
         ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
 
+
     stages {
         stage('Checkout') {
             steps {
