@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-bot
+  namespace: weather-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weather-bot
+  template:
+    metadata:
+      labels:
+        app: weather-bot
+    spec:
+      containers:
+        - name: weather-bot
+          image: weather-bot:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BOT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: weather-bot-secret
+                  key: BOT_NAME
+
+            - name: BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: weather-bot-secret
+                  key: BOT_TOKEN
+
+            - name: WEATHER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weather-bot-secret
+                  key: WEATHER_API_KEY
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: weather-bot-secret
+                  key: DB_PASSWORD
+
+            - name: JAVA_TOOL_OPTIONS
+              value: >-
+                -Djava.net.preferIPv4Stack=true
+                -Djava.net.preferIPv6Addresses=false
+                -DbotConfig.name=$(BOT_NAME)
+                -DbotConfig.token=$(BOT_TOKEN)
+                -DbotConfig.apiKey=$(WEATHER_API_KEY)
+                -Ddb.url=jdbc:postgresql://postgres:5432/postgres
+                -Ddb.password=$(DB_PASSWORD)
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
